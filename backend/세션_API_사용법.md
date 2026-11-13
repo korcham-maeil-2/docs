@@ -1,8 +1,36 @@
 # 백엔드 세션 API 사용법
 
 > 대상: 백엔드를 처음 띄워 보는 사람, 프론트에서 백엔드를 부르는 사람
-> 기준: backend `main` (korcham-maeil-2/backend#26, 2026-11-13)
+> 기준: backend `main` (korcham-maeil-2/backend#26, #27, 2026-11-13)
 > 코드 위치: `backend/src/backend/` — 각 파일 맨 위에 개념 설명 주석이 있다
+
+## 0. 배포된 서버 (바로 써 보기)
+
+| 항목 | 값 |
+|---|---|
+| 백엔드 URL | **https://maeil2-backend.sunghoyaaa.com** |
+| API 시험 화면 | **https://maeil2-backend.sunghoyaaa.com/docs** |
+| 살아 있는지 확인 | https://maeil2-backend.sunghoyaaa.com/health → `{"status":"ok"}` |
+| 세션 상태 저장(SQLite) | 서버 Docker 볼륨 `wolgeup-backend-data` → `/var/lib/docker/volumes/wolgeup-backend-data/_data/checkpoints.sqlite` (컨테이너 안 `/data/checkpoints.sqlite`) |
+
+- SQLite는 접속 주소가 있는 DB가 아니라 서버 안의 **파일 하나**다. 재배포해도 볼륨에 남는다. 사용자 입력이 들어 있으므로 외부에 공개하지 않는다.
+- 서버: 홈랩 라즈베리파이(arm64). `maeil2-backend.sunghoyaaa.com` → 가비아 CNAME → DDNS `sunghoyaaa.serveirc.com` → 서버의 Nginx 컨테이너(HTTPS, Let's Encrypt) → 백엔드 컨테이너.
+- 배포된 서버의 CORS는 지금 `http://localhost:3000`만 허락한다. 프론트 도메인이 정해지면 서버의 `backend/.env`에 `CORS_ORIGINS`를 추가한다 (7절).
+
+### 자동 배포 (CI/CD)
+
+**backend `main`에 merge하면 자동으로 배포된다.** 따로 서버에 들어갈 필요가 없다.
+
+```
+main에 merge → CI: 포맷·린트·테스트 (GitHub 서버)
+            → 성공하면 배포: 라즈베리파이의 GitHub Actions 러너(maeil2-pi)가
+               서버의 ~/apps/maeil2-backend 에서 git pull → docker compose up -d --build → /health 확인
+```
+
+- 진행 상황: backend 저장소 → **Actions** 탭 → "배포" 워크플로. 실패하면 서버 로그가 그 화면에 찍힌다.
+- 수동 재배포: Actions → 배포 → **Run workflow**
+- PR에서는 배포가 실행되지 않는다. 외부 기여자의 PR 워크플로는 승인 후에만 실행된다 (집 서버 보호).
+- 저장소에는 비밀 값이 없다. 서버 전용 설정(`docker-compose.override.yml`: 포트 `127.0.0.1:8010`, Nginx 네트워크 연결)은 서버에만 있고 커밋하지 않는다.
 
 ## 1. 한 줄 요약
 
